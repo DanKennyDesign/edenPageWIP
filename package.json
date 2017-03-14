@@ -1,0 +1,24 @@
+{
+  "name": "eden_wip",
+  "version": "1.0.0",
+  "description": "Making a garden",
+  "main": "sketch.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dankennydesign/edenPageWIP.git"
+  },
+  "author": "Dan Kenny",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/dankennydesign/edenPageWIP/issues"
+  },
+  "homepage": "https://github.com/dankennydesign/edenPageWIP#readme",
+  "devDependencies": {
+    "eslint": "^3.17.1",
+    "eslint-config-airbnb-base": "^11.1.1",
+    "eslint-plugin-import": "^2.2.0"
+  }
+}
