@@ -48,8 +48,8 @@ function setup() {
 	*/
 
 	//testNode = new Node(3*width/4, 3*height/4, 2, 2, 0, 20, 60);
-	testFireflies = new Node(width/2, 3*height/4, 3, 2, PI, 25, 50);
-	testTree = new Node(width/4, height, 3, 3, PI, 200, 40);
+	testFireflies = new Node(width/2, 3*height/4, 3, 2, PI, 20, 50);
+	testTree = new Node(width/4, height, 3, 3, PI, 20, 40);
 	
 };
 
@@ -107,11 +107,7 @@ function draw () {
 };
 
 function mousePressed() {
-		if (right){
-			right = false;
-		}else{
-			right = true;
-		}
+		right = !right;
 	};
 
 function blow(){
@@ -378,7 +374,7 @@ function Node (x, y, n, n2, theta, w, sc) {
  
 
 		this.children.map(  (c) => c.update()  ); 
-		this.children.map(  function(c) {c.update();}  );
+		//this.children.map(  function(c) {c.update();}  );
 
 		// for(var i = 0; i < this.children.length; i++){
 		// 	this.children[i].update();	
