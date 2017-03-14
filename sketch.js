@@ -48,7 +48,7 @@ function setup() {
 	*/
 
 	//testNode = new Node(3*width/4, 3*height/4, 2, 2, 0, 20, 60);
-	testFireflies = new Node(width/2, 3*height/4, 3, 2, PI, 20, 50);
+	testFireflies = new Node(width/2, 3*height/4, 3, 2, PI, 25, 50);
 	testTree = new Node(width/4, height, 3, 3, PI, 200, 40);
 	
 };
@@ -151,293 +151,303 @@ function blow(){
 };
 
 
-			//physics object class
-			function Mover (x, y, vx, vy, w, sc) {
-				this.pos = createVector(x, y); 
-				this.vel = createVector (vx, vy);
-				this.accel = createVector (0,0);  
-				this.weight = w;
-				this.scale = sc;
-				this.tethered = false;
-				this.tether;
-				this.radius;
-				this.origAng;
 
-				//------TETHERING FUNCTIONS-----------
+//physics object class
+function Mover (x, y, vx, vy, w, sc) {
+	this.pos = createVector(x, y); 
+	this.vel = createVector (vx, vy);
+	this.accel = createVector (0,0);  
+	this.weight = w;
+	this.scale = sc;
+	this.tethered = false;
+	this.tether;
+	this.radius;
+	this.origAng;
 
-				this.tetherUpdate2 = function(){
-					//first, standard physics update
-					this.vel.add(this.accel);
-					this.accel.set(0,0);
-					//then convert everything to angular velocity
-					var angVel;
-					var angle = atan2(this.pos.y-this.tether.pos.y, this.pos.x-this.tether.pos.x);
-					angVel = (this.vel.x*-sin(angle)+this.vel.y*cos(angle))/this.radius;
-					angle += angVel;
-					
-					//the x component of the velocity should be multiplied by -sin(angle) but I DON'T KNOW WHY YET
-					//store (negative) old position in pass to calculate momentum
-					var pass =  createVector(-this.pos.x, -this.pos.y);
-					
-					this.pos.set(this.tether.pos.x+cos(angle)*this.radius, this.tether.pos.y+sin(angle)*this.radius);
+	//------TETHERING FUNCTIONS-----------
 
-					//change pass to an expression of current momentum by adding current position
+	this.tetherUpdate2 = function(){
+		//first, standard physics update
+		this.vel.add(this.accel);
+		this.accel.set(0,0);
+		//then convert everything to angular velocity
+		var angVel;
+		var angle = atan2(this.pos.y-this.tether.pos.y, this.pos.x-this.tether.pos.x);
+		angVel = (this.vel.x*-sin(angle)+this.vel.y*cos(angle))/this.radius;
+		angle += angVel;
+		
+		//the x component of the velocity should be multiplied by -sin(angle) but I DON'T KNOW WHY YET
+		//store (negative) old position in pass to calculate momentum
+		var pass =  createVector(-this.pos.x, -this.pos.y);
+		
+		this.pos.set(this.tether.pos.x+cos(angle)*this.radius, this.tether.pos.y+sin(angle)*this.radius);
 
-					pass.add(this.pos);
+		//change pass to an expression of current momentum by adding current position
 
-					var swing = p5.Vector.sub(this.vel,pass); //swing expresses the difference between tethered velocity, and velocity if the Mover were untethered
-					//swing.mult(this.weight);
-					this.tether.applyForce(swing);
+		pass.add(this.pos);
 
-					//last, update the velocity to reflect the direction you're actually going
-					this.vel.set(pass);
-				};
+		var swing = p5.Vector.sub(this.vel,pass); //swing expresses the difference between tethered velocity, and velocity if the Mover were untethered
+		//swing.mult(this.weight);
+		this.tether.applyForce(swing);
 
-				this.edgeTetherUpdate = function () { //WIP: meant to simultaneously tether update and edgecollide to avoid 'sticking'
-					//first, standard physics update
-					this.vel.add(this.accel);
-					this.accel.set(0,0);
-					//then convert everything to angular velocity
-					var angVel;
-					var angle = atan2(this.pos.y-this.tether.pos.y, this.pos.x-this.tether.pos.x);
-					angVel = (this.vel.x*-sin(angle)+this.vel.y*cos(angle))/this.radius;
+		//last, update the velocity to reflect the direction you're actually going
+		this.vel.set(pass);
+	};
 
-					/*
-					if ((this.pos.x<=0 && this.vel.x<0)||(this.pos.x>=width && this.vel.x>0)) {
-						angVel=angVel-1;
-					};
+	this.edgeTetherUpdate = function () { //WIP: meant to simultaneously tether update and edgecollide to avoid 'sticking'
+		//first, standard physics update
+		this.vel.add(this.accel);
+		this.accel.set(0,0);
+		//then convert everything to angular velocity
+		var angVel;
+		var angle = atan2(this.pos.y-this.tether.pos.y, this.pos.x-this.tether.pos.x);
+		angVel = (this.vel.x*-sin(angle)+this.vel.y*cos(angle))/this.radius;
 
-					if ((this.pos.y<=0 && this.vel.y<0)||(this.pos.y>=height && this.vel.y>0)) {
-						angVel=angVel*-1;
+		/*
+		if ((this.pos.x<=0 && this.vel.x<0)||(this.pos.x>=width && this.vel.x>0)) {
+			angVel=angVel-1;
+		};
 
-					};
-					*/
-					angle += angVel;
-					
-					//the x component of the velocity should be multiplied by -sin(angle) but I DON'T KNOW WHY YET
-					//store (negative) old position in pass to calculate momentum
-					var pass =  createVector(-this.pos.x, -this.pos.y);
-					
-					this.pos.set(this.tether.pos.x+cos(angle)*this.radius, this.tether.pos.y+sin(angle)*this.radius);
+		if ((this.pos.y<=0 && this.vel.y<0)||(this.pos.y>=height && this.vel.y>0)) {
+			angVel=angVel*-1;
 
-					//change pass to an expression of current momentum by adding current position
+		};
+		*/
+		angle += angVel;
+		
+		//the x component of the velocity should be multiplied by -sin(angle) but I DON'T KNOW WHY YET
+		//store (negative) old position in pass to calculate momentum
+		var pass =  createVector(-this.pos.x, -this.pos.y);
+		
+		this.pos.set(this.tether.pos.x+cos(angle)*this.radius, this.tether.pos.y+sin(angle)*this.radius);
 
-					pass.add(this.pos);
+		//change pass to an expression of current momentum by adding current position
 
-					var swing = p5.Vector.sub(this.vel,pass); //swing expresses the difference between tethered velocity, and velocity if the Mover were untethered
-					//swing.mult(this.weight);
-					this.tether.applyForce(swing);
+		pass.add(this.pos);
 
-					//last, update the velocity to reflect the direction you're actually going
-					this.vel.set(pass);
-				};
+		var swing = p5.Vector.sub(this.vel,pass); //swing expresses the difference between tethered velocity, and velocity if the Mover were untethered
+		//swing.mult(this.weight);
+		this.tether.applyForce(swing);
 
-				this.tetherTo = function(t) { //this function tethers an untethered mover to a new tether 
-					if(this.tethered == false){
-						this.tether = t;
-						this.radius = this.pos.dist(t.pos);
-						this.origAng = atan2(this.pos.y-t.pos.y, this.pos.x-t.pos.x);
-					};
-				};
+		//last, update the velocity to reflect the direction you're actually going
+		this.vel.set(pass);
+	};
 
-				this.untether = function(){}; //WIP
+	this.tetherTo = function(t) { //this function tethers an untethered mover to a new tether 
+		if(this.tethered == false){
+			this.tether = t;
+			this.radius = this.pos.dist(t.pos);
+			this.origAng = atan2(this.pos.y-t.pos.y, this.pos.x-t.pos.x);
+		};
+	};
 
-				this.angular = function (){ //enacts angular tension on the mover (eg for tree branches)
-					var toward = createVector(this.tether.pos.x+cos(this.origAng)*this.radius, this.tether.pos.y+sin(this.origAng)*this.radius);
-					var f = p5.Vector.sub(toward, this.pos);
-					
-					stroke(255,225,50);
-					line(this.pos.x, this.pos.y, toward.x, toward.y);
-					noStroke(); 
-					
-					f.mult(f.mag());
-					f.div(this.radius);
-					this.applyForce(f);
-				};
+	this.untether = function(){}; //WIP
 
-				//----------KEYBOARD CONTROL------------
+	this.angular = function (){ //enacts angular tension on the mover (eg for tree branches)
+		var toward = createVector(this.tether.pos.x+cos(this.origAng)*this.radius, this.tether.pos.y+sin(this.origAng)*this.radius);
+		var f = p5.Vector.sub(toward, this.pos);
+		
+		stroke(255,225,50);
+		line(this.pos.x, this.pos.y, toward.x, toward.y);
+		noStroke(); 
+		
+		f.mult(f.mag());
+		f.div(this.radius);
+		this.applyForce(f);
+	};
 
-				this.control = function () { //puts the mover under control of the keyboard
-					if(keyIsDown(LEFT_ARROW)){
-						this.vel.x -= .8;
-					};
-					if(keyIsDown(RIGHT_ARROW)){
-						this.vel.x += .8;
-					};
-					if(keyIsDown(UP_ARROW)){
-						this.vel.y -= .8;
-					};
-					if(keyIsDown(DOWN_ARROW)){
-						this.vel.y += .8;
-					};
-				};
+	//----------KEYBOARD CONTROL------------
 
-				//-------SHARED PHYSICS--------
+	this.control = function () { //puts the mover under control of the keyboard
+		if(keyIsDown(LEFT_ARROW)){
+			this.vel.x -= .8;
+		};
+		if(keyIsDown(RIGHT_ARROW)){
+			this.vel.x += .8;
+		};
+		if(keyIsDown(UP_ARROW)){
+			this.vel.y -= .8;
+		};
+		if(keyIsDown(DOWN_ARROW)){
+			this.vel.y += .8;
+		};
+	};
 
-				this.applyForce = function (force) {
-					var f = p5.Vector.div(force,this.weight);
-					this.accel.add(f);
-					/*
-					//line for troubleshooting velocity	
-					stroke(255,225,50);
-					line(this.pos.x, this.pos.y, this.pos.x+(10*this.vel.x), this.pos.y+(10*this.vel.y));
-					noStroke(); 
-					*/
-				};
+	//-------SHARED PHYSICS--------
 
-				this.edgeCollide = function () { //bounces off the edges of the canvas
-					if ((this.pos.x<=0 && this.vel.x<0)||(this.pos.x>=width && this.vel.x>0)) {
-						this.vel.x=this.vel.x*-1;
-					};
+	this.applyForce = function (force) {
+		var f = p5.Vector.div(force,this.weight);
+		this.accel.add(f);
+		/*
+		//line for troubleshooting velocity	
+		stroke(255,225,50);
+		line(this.pos.x, this.pos.y, this.pos.x+(10*this.vel.x), this.pos.y+(10*this.vel.y));
+		noStroke(); 
+		*/
+	};
 
-					if ((this.pos.y<=0 && this.vel.y<0)||(this.pos.y>=height && this.vel.y>0)) {
-						this.vel.y=this.vel.y*-1;
+	this.edgeCollide = function () { //bounces off the edges of the canvas
+		if ((this.pos.x<=0 && this.vel.x<0)||(this.pos.x>=width && this.vel.x>0)) {
+			this.vel.x=this.vel.x*-1;
+		};
 
-					};
-				};
+		if ((this.pos.y<=0 && this.vel.y<0)||(this.pos.y>=height && this.vel.y>0)) {
+			this.vel.y=this.vel.y*-1;
 
-				this.update = function () {  //manages acceleration, speed, position for untethered objects
-					this.vel.add(this.accel);
-					this.accel.set(0,0);
-					this.pos.add(this.vel);
-				};
+		};
+	};
 
-				this.edgeUpdate = function(){ //this function is intended to avoid movers getting 'stuck outside' - they should stop on the side of the canvas
-					this.vel.add(this.accel);
-					this.accel.set(0,0);
-					if ((this.pos.x<=0 && this.vel.x<0)||(this.pos.x>=width && this.vel.x>0)) {
-						this.vel.x=this.vel.x*-1;
-					};
+	this.update = function () {  //manages acceleration, speed, position for untethered objects
+		this.vel.add(this.accel);
+		this.accel.set(0,0);
+		this.pos.add(this.vel);
+	};
 
-					if ((this.pos.y<=0 && this.vel.y<0)||(this.pos.y>=height && this.vel.y>0)) {
-						this.vel.y=this.vel.y*-1;
+	this.edgeUpdate = function(){ //this function is intended to avoid movers getting 'stuck outside' - they should stop on the side of the canvas
+		this.vel.add(this.accel);
+		this.accel.set(0,0);
+		if ((this.pos.x<=0 && this.vel.x<0)||(this.pos.x>=width && this.vel.x>0)) {
+			this.vel.x=this.vel.x*-1;
+		};
 
-					};
-					this.pos.add(this.vel);
-				};
+		if ((this.pos.y<=0 && this.vel.y<0)||(this.pos.y>=height && this.vel.y>0)) {
+			this.vel.y=this.vel.y*-1;
 
-				this.applyWind = function () {  //this is a globally available function to apply the wind speed to the mover in a more realistic way, as though it were air.
-					var effectOfWind = p5.Vector.sub(wind,this.vel);
-					this.applyForce(effectOfWind);
-				};
+		};
+		this.pos.add(this.vel);
+	};
 
-				//---------DISPLAY------------
+	this.applyWind = function () {  //this is a globally available function to apply the wind speed to the mover in a more realistic way, as though it were air.
+		var effectOfWind = p5.Vector.sub(wind,this.vel);
+		this.applyForce(effectOfWind);
+	};
+
+	//---------DISPLAY------------
 
 
-				this.show = function () { //displays physics object as a firefly
-					stroke(color(255, 220, 50));
-					strokeWeight(1);
-					fill(color(255, 150));
-					ellipse(this.pos.x, this.pos.y, 4, 4);
-					ellipse(this.pos.x, this.pos.y, 1, 1);
-					noStroke();  	
-				};
+	this.show = function () { //displays physics object as a firefly
+		stroke(color(255, 220, 50));
+		strokeWeight(1);
+		fill(color(255, 150));
+		ellipse(this.pos.x, this.pos.y, 4, 4);
+		ellipse(this.pos.x, this.pos.y, 1, 1);
+		noStroke();  	
+	};
+};
+
+function Node (x, y, n, n2, theta, w, sc) {
+	/*
+	x = starting x coordinate
+	y = starting y coordinate
+	n = maximum number of times the tree of objects will 'extend' before terminating the recursion
+	n2 = maximum numnber of children in each branch
+	theta = current angle
+	w = current weight
+	sc = current scale
+	*/
+
+	this.junction = new Mover(x, y, 0, 0, w, sc);
+	this.children = new Array();
+	this.recurse = false;
+	this.physical = new Mover(x, y, 0, 0, w, sc);
+	this.scale = sc;
+	this.lat = x;
+	this.long = y;
+	this.weight = w;
+	this.maxN = n;
+	this.angle = theta;
+
+	if(this.maxN>0){				
+		for(var i = 0; i < n2; i++){
+			newAng = this.angle+random(-PI/4, PI/4);
+			xCoOrd = this.lat + this.scale*sin(newAng);
+			yCoOrd = this.long + this.scale*cos(newAng);
+			this.children[i] = new Node(xCoOrd, yCoOrd, this.maxN-1, n2, newAng, this.weight-1, this.scale-1);
+			this.children[i].recurse = true;
+			this.children[i].junction.tetherTo(this.junction);					
+		};
+	};
+
+
+
+
+	this.update = function(){
+		if (this.recurse){
+			this.junction.tetherUpdate2();
+		}
+ 
+
+		this.children.map(  (c) => c.update()  ); 
+		this.children.map(  function(c) {c.update();}  );
+
+		// for(var i = 0; i < this.children.length; i++){
+		// 	this.children[i].update();	
+		// } ;
+	};
+
+
+	this.edgeUpdate = function(){
+		if (this.recurse){
+			this.junction.edgeTetherUpdate();
+		}
+		for(var i = 0; i < this.children.length; i++){
+			this.children[i].edgeUpdate();	
+		} ;
+	};
+
+	this.nodeShow = function(){
+		this.junction.show();
+
+		for(var i = 0; i < this.children.length; i++){
+			this.children[i].nodeShow();
+			stroke(255,225,50);
+			line(this.junction.pos.x, this.junction.pos.y, this.children[i].junction.pos.x, this.children[i].junction.pos.y);
+			noStroke();
+		};
+	};
+
+	this.fireflies = function (){
+		this.junction.show();
+		for(var i = 0; i < this.children.length; i++){
+			this.children[i].fireflies();
 			};
+	};
 
-			function Node (x, y, n, n2, theta, w, sc) {
-				/*
-				x = starting x coordinate
-				y = starting y coordinate
-				n = maximum number of times the tree of objects will 'extend' before terminating the recursion
-				n2 = maximum numnber of children in each branch
-				theta = current angle
-				w = current weight
-				sc = current scale
-				*/
+	this.edgeCollide = function() {
+		this.junction.edgeCollide();
+		for(var i = 0; i<this.children.length; i++){
+			this.children[i].junction.edgeCollide();
+		};
 
-				this.junction = new Mover(x, y, 0, 0, w, sc);
-				this.children = new Array();
-				this.recurse = false;
-				this.physical = new Mover(x, y, 0, 0, w, sc);
-				this.scale = sc;
-				this.lat = x;
-				this.long = y;
-				this.weight = w;
-				this.maxN = n;
-				this.angle = theta;
+	};
 
-				if(this.maxN>0){				
-					for(var i = 0; i < n2; i++){
-						newAng = this.angle+random(-PI/4, PI/4);
-						xCoOrd = this.lat + this.scale*sin(newAng);
-						yCoOrd = this.long + this.scale*cos(newAng);
-						this.children[i] = new Node(xCoOrd, yCoOrd, this.maxN-1, n2, newAng, this.weight-1, this.scale-1);
-						this.children[i].recurse = true;
-						this.children[i].junction.tetherTo(this.junction);					
-					};
-				};
+	this.angular = function(){
+		if(this.recurse){
+			this.junction.angular();
 
-				this.update = function(){
-					if (this.recurse){
-						this.junction.tetherUpdate2();
-					}
-					for(var i = 0; i < this.children.length; i++){
-						this.children[i].update();	
-					} ;
-				};
+		};
+		for(var i = 0; i < this.children.length; i++){
+			this.children[i].angular();
+		};
+	};
 
-				this.edgeUpdate = function(){
-					if (this.recurse){
-						this.junction.edgeTetherUpdate();
-					}
-					for(var i = 0; i < this.children.length; i++){
-						this.children[i].edgeUpdate();	
-					} ;
-				};
+	this.applyForce = function (f){
+		this.junction.applyForce(f);
+		for(var i = 0; i < this.children.length; i++){
+			this.children[i].junction.applyForce(f);	
+		}; 
+	};
 
-				this.nodeShow = function(){
-					this.junction.show();
-
-					for(var i = 0; i < this.children.length; i++){
-						this.children[i].nodeShow();
-						stroke(255,225,50);
-						line(this.junction.pos.x, this.junction.pos.y, this.children[i].junction.pos.x, this.children[i].junction.pos.y);
-						noStroke();
-					};
-				};
-
-				this.fireflies = function (){
-					this.junction.show();
-					for(var i = 0; i < this.children.length; i++){
-						this.children[i].fireflies();
-						};
-				};
-
-				this.edgeCollide = function() {
-					this.junction.edgeCollide();
-					for(var i = 0; i<this.children.length; i++){
-						this.children[i].junction.edgeCollide();
-					};
-
-				};
-
-				this.angular = function(){
-					if(this.recurse){
-						this.junction.angular();
-
-					};
-					for(var i = 0; i < this.children.length; i++){
-						this.children[i].angular();
-					};
-				};
-
-				this.applyForce = function (f){
-					this.junction.applyForce(f);
-					for(var i = 0; i < this.children.length; i++){
-						this.children[i].junction.applyForce(f);	
-					}; 
-				};
-
-				this.applyWind = function(){
-					this.junction.applyWind();
-					for(var i = 0; i<this.children.length; i++){
-						this.children[i].junction.applyWind();
-					};
-				};
+	this.applyWind = function(){
+		this.junction.applyWind();
+		for(var i = 0; i<this.children.length; i++){
+			this.children[i].junction.applyWind();
+		};
+	};
 
 
 
-			};
+};
 /*
 			class Node {
   Node [] children;
