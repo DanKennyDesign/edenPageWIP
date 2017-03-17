@@ -1,10 +1,11 @@
 /*
 TO DO
 
-1. Ensure Node constructor is in fact building multiple children
-2. alter tetherUpdate2 so it exerts force on the tether (based on difference between velocity before and after conversion to angular velocity)
+[1.] Ensure Node constructor is in fact building multiple children
+[2.] alter tetherUpdate2 so it exerts force on the tether (based on difference between velocity before and after conversion to angular velocity)
 3. Build tree display function
 4. Build grass display function
+4. a. change gravity to be dependent on a Movers weight
 5. Build bugs
 6. AESTHETICALLY - translucent shapes on black background - esp flowers
 7. Put off 'bouncing twig' physics - it's not necessary for this build
@@ -16,67 +17,33 @@ TO DO
 var wind;
 var up = true;
 var right = true;
-//var centre;
-//var oscillator;
+
 var angle;
 
-//var balls = [];
-//var testNode;
 var testFireflies;
 var testTree;
+var gravity;
 
 
 function setup() {
 
 	createCanvas(600, 600);
 	background(0);
-	
-	//making the oscillator to swing from the centre...
 
 	wind = createVector (0,0);
+	gravity = createVector(0,1);
 
-	/*
-	var howManyBalls = int(random(10));
-	for(var i = 0; i < howManyBalls; i++){
-		balls[i] = new Mover (width/2, random(height), random(-5,5), random(-5,5), 200, 4); 
-	};
-	
-	centre = new Mover (300, 300, 0, 0, 20, 4);
-	oscillator = new Mover(300, 450, 0, 0, 5, 4);
-	oscillator.tetherTo(centre);
-	
-	*/
 
-	//testNode = new Node(3*width/4, 3*height/4, 2, 2, 0, 20, 60);
-	testFireflies = new Node(width/2, 3*height/4, 3, 2, PI, 20, 50);
+	testFireflies = new Node(width/2, 3*height/4, 3, 2, PI, 10, 50);
 	testTree = new Node(width/4, height, 3, 3, PI, 20, 40);
+
+	testGrass = new Node (3*width/4, height, 1, 2, PI, 3, 100);
 	
 };
 
 
 function draw () {
 	background(0,20);
-	/*
-	for(var i = 0; i < balls.length; i++){ //bouncy balls!
-		balls[i].update ();
-		balls[i].edgeCollide();
-		balls[i].show();
-		balls[i].applyForce(wind);
-	};
-	*/
-
-	/*
-
-	centre.edgeCollide();
-	centre.update();
-	centre.show();
-	centre.applyForce(wind);
-
-	oscillator.tetherUpdate2();
-	oscillator.applyForce(wind);
-	oscillator.show();
-	*/
-
 	
 	testFireflies.update();
 	testFireflies.applyWind();
@@ -88,16 +55,14 @@ function draw () {
 
 	testTree.update();
 	testTree.applyWind();
+	testTree.applyForce(gravity);
 	testTree.angular();
 	testTree.fireflies();
 
-
-
-	//testNode.update();
-	//testNode.applyWind();
-	//testNode.applyForce(wind);
-	//testNode.nodeShow();
-	//print(wind.x);
+	testGrass.update();
+	testGrass.applyWind();
+	testGrass.angular();
+	testGrass.grass();
 
 	blow();
 	print(right);
@@ -158,6 +123,7 @@ function Mover (x, y, vx, vy, w, sc) {
 	this.tethered = false;
 	this.tether;
 	this.radius;
+	this.angle;
 	this.origAng;
 
 	//------TETHERING FUNCTIONS-----------
@@ -167,55 +133,14 @@ function Mover (x, y, vx, vy, w, sc) {
 		this.vel.add(this.accel);
 		this.accel.set(0,0);
 		//then convert everything to angular velocity
-		var angVel;
-		var angle = atan2(this.pos.y-this.tether.pos.y, this.pos.x-this.tether.pos.x);
-		angVel = (this.vel.x*-sin(angle)+this.vel.y*cos(angle))/this.radius;
-		angle += angVel;
+		var angVel = (this.vel.x*-sin(this.angle)+this.vel.y*cos(this.angle))/this.radius;
+		this.angle += angVel;
 		
 		//the x component of the velocity should be multiplied by -sin(angle) but I DON'T KNOW WHY YET
 		//store (negative) old position in pass to calculate momentum
 		var pass =  createVector(-this.pos.x, -this.pos.y);
 		
-		this.pos.set(this.tether.pos.x+cos(angle)*this.radius, this.tether.pos.y+sin(angle)*this.radius);
-
-		//change pass to an expression of current momentum by adding current position
-
-		pass.add(this.pos);
-
-		var swing = p5.Vector.sub(this.vel,pass); //swing expresses the difference between tethered velocity, and velocity if the Mover were untethered
-		//swing.mult(this.weight);
-		this.tether.applyForce(swing);
-
-		//last, update the velocity to reflect the direction you're actually going
-		this.vel.set(pass);
-	};
-
-	this.edgeTetherUpdate = function () { //WIP: meant to simultaneously tether update and edgecollide to avoid 'sticking'
-		//first, standard physics update
-		this.vel.add(this.accel);
-		this.accel.set(0,0);
-		//then convert everything to angular velocity
-		var angVel;
-		var angle = atan2(this.pos.y-this.tether.pos.y, this.pos.x-this.tether.pos.x);
-		angVel = (this.vel.x*-sin(angle)+this.vel.y*cos(angle))/this.radius;
-
-		/*
-		if ((this.pos.x<=0 && this.vel.x<0)||(this.pos.x>=width && this.vel.x>0)) {
-			angVel=angVel-1;
-		};
-
-		if ((this.pos.y<=0 && this.vel.y<0)||(this.pos.y>=height && this.vel.y>0)) {
-			angVel=angVel*-1;
-
-		};
-		*/
-		angle += angVel;
-		
-		//the x component of the velocity should be multiplied by -sin(angle) but I DON'T KNOW WHY YET
-		//store (negative) old position in pass to calculate momentum
-		var pass =  createVector(-this.pos.x, -this.pos.y);
-		
-		this.pos.set(this.tether.pos.x+cos(angle)*this.radius, this.tether.pos.y+sin(angle)*this.radius);
+		this.pos.set(this.tether.pos.x+cos(this.angle)*this.radius, this.tether.pos.y+sin(this.angle)*this.radius);
 
 		//change pass to an expression of current momentum by adding current position
 
@@ -234,6 +159,7 @@ function Mover (x, y, vx, vy, w, sc) {
 			this.tether = t;
 			this.radius = this.pos.dist(t.pos);
 			this.origAng = atan2(this.pos.y-t.pos.y, this.pos.x-t.pos.x);
+			this.angle = atan2(this.pos.y-t.pos.y, this.pos.x-t.pos.x);
 		};
 	};
 
@@ -243,9 +169,12 @@ function Mover (x, y, vx, vy, w, sc) {
 		var toward = createVector(this.tether.pos.x+cos(this.origAng)*this.radius, this.tether.pos.y+sin(this.origAng)*this.radius);
 		var f = p5.Vector.sub(toward, this.pos);
 		
-		stroke(255,225,50);
+		//draws a line to the point towards which this function is returning the mover 
+
+		/*stroke(255,225,50);
 		line(this.pos.x, this.pos.y, toward.x, toward.y);
 		noStroke(); 
+		*/
 		
 		f.mult(f.mag());
 		f.div(this.radius);
@@ -409,6 +338,35 @@ function Node (x, y, n, n2, theta, w, sc) {
 			};
 	};
 
+	this.grass = function () {
+		fill(150, 240, 210, 100);//
+		var pass = this.scale/3;
+		for (var i = 0; i < this.children.length; i++){
+			
+	      	
+	      	beginShape();
+	      	
+	      	vertex(this.junction.pos.x-pass, height);//bottom left hand corner of the triangle
+	      	
+	      	bezierVertex(
+	      		this.junction.pos.x-pass/2, //first story 
+	      		height-pass, 
+	      		this.children[i].junction.pos.x, //second story
+	      		height-2*pass, 
+	      		this.children[i].junction.pos.x, 
+	      		this.children[i].junction.pos.y);
+	      	
+	      	bezierVertex(this.children[i].junction.pos.x, //second story
+	      	 height-2*pass,
+	      	 this.junction.pos.x+pass/2, //first story
+	      	 height-pass,
+	      	 this.junction.pos.x+pass, //bottom right hand corner of the triangle
+	      	 height); 
+
+	      	endShape(CLOSE);			
+		};
+	};
+
 	this.edgeCollide = function() {
 		this.junction.edgeCollide();
 		for(var i = 0; i<this.children.length; i++){
@@ -444,213 +402,3 @@ function Node (x, y, n, n2, theta, w, sc) {
 
 
 };
-/*
-			class Node {
-  Node [] children;
-  Node parent;
-  Mover junction;
-  int sc;
-  int track;
-  boolean recurse;
-  boolean dad;
-  float ang;
-  PVector orig; //relative to parent
-  float d; //from parent
-
-  Node (int startScale, int stopScale, float startX, float startY, float angle, float dense) {
-    sc = startScale;
-    ang = angle;
-    junction = new Mover(startX, startY, 0, 0, int(startScale*dense));
-    track = int(2.7-noise(startX, startY));
-    //    println(noise(startX, startY));
-
-    if (startScale>stopScale) {
-      recurse = true;
-      children = new Node [track];
-
-      if (track == 2) {
-        int kidScale = int(random(2, sc-2));
-        float dist = kidScale*4;
-        float kidAng = ang+PI/4*(0.3-(pow(noise(400*startX*startY), (startScale-kidScale))));//angle-PI/3+(2*PI/3*((i+1.0)/(track+1)))+(PI/3)*(0.5-noise(startX*startY));
-        float additive = dist*(0.5-noise(startX*startY)); //for a 'kick' that doesn't change angle
-        float passX = (dist*cos(kidAng))+sin(kidAng)*additive;
-        float passY = (dist*sin(kidAng))+cos(kidAng)*additive;
-        children[1] = new Node(kidScale, stopScale, startX+passX, startY+passY, kidAng, dense);
-        children[1].parent = this;
-        children[1].dad = true;
-        children[1].orig = new PVector(children[1].junction.pos.x-startX, children[1].junction.pos.y-startY);
-        //println(children[1].junction.pos.x-startX-children[1].orig.x);
-        children[1].d = dist;
-        sc -= int(kidScale/2);
-      }
-
-      int kidScale = sc-3;
-      if (kidScale<1) {
-        kidScale = 1;
-      }
-      float dist = sc*3;
-      float kidAng = ang+(startScale-kidScale)*PI/30*(0.3-noise(startX*startY));//angle-PI/3+(2*PI/3*((i+1.0)/(track+1)))+(PI/3)*(0.5-noise(startX*startY));
-      float additive = 0;//2*dist*(0.5-noise(startX*startY)); //for a 'kick' that doesn't change angle
-      float passX = (dist*cos(kidAng))+sin(kidAng)*additive;
-      float passY = (dist*sin(kidAng))+cos(kidAng)*additive;
-      children[0] = new Node(kidScale, stopScale, startX+passX, startY+passY, kidAng, dense);
-      children[0].parent = this;
-      children[0].dad = true;
-      children[0].orig = new PVector(children[0].junction.pos.x-startX, children[0].junction.pos.y-startY);
-      //println(children[0].junction.pos.x-startX-children[0].orig.x);
-      children[0].d = dist;
-      sc = startScale;
-    }
-  }
-
-
-  Node find() {
-    Node givinItBack;
-    int decide = int(random(0, children.length-1));
-    if (children[decide].recurse) {
-      givinItBack = children[decide].find();
-    } else {
-      givinItBack = children[decide];
-    }
-    return givinItBack;
-  }
-
-  void treeShow() {
-    if (sc>0) {
-      fill(color(255, 150));
-      pushMatrix();
-      translate(junction.pos.x, junction.pos.y);
-      scale(0.02);
-      if (recurse) {
-
-        for (int i = 0; i<children.length; i++) {
-          pushMatrix();
-          scale(children[i].sc);
-          rotate(PI/2+junction.heading(children[i].junction.pos));
-          leaf();
-          stroke(color(255, 150));
-          strokeWeight(15+300/sc);
-          line(0, 0, 0, -150);
-          noStroke();
-          popMatrix();
-        }
-      } else {
-        //      fill(color(255, 0, 0));
-        pushMatrix();
-        scale(sc*2);
-        rotate(PI/2+ang);
-        greens.display();
-        leaf();
-        popMatrix();
-        //      fill(color(255, 150));
-      }
-
-      if (sc<10) {
-        pushMatrix();
-        scale(sc);
-        rotate(PI/2+ang);
-        greens.display();
-        popMatrix();
-      }
-
-      if (dad) {
-        pushMatrix();
-        scale(sc);
-        rotate(PI/2+junction.heading(parent.junction.pos));
-        leaf();
-        popMatrix();
-      } else {
-        pushMatrix();
-        scale(50);
-        ellipse(0, 0, sc, sc);
-        popMatrix();
-      }
-      popMatrix();
-
-      if (recurse) {
-        for (int i = 0; i<children.length; i++) {
-          children[i].treeShow();
-        }
-      }
-    }
-  }
-
-  void sway() {
-    if (dad) {
-      //      stroke(0, 0, 255);
-      //      strokeWeight(3);
-      //      line(junction.pos.x, junction.pos.y, parent.junction.pos.x+orig.x, parent.junction.pos.y+orig.y);
-      //      point(parent.junction.pos.x+orig.x, parent.junction.pos.y+orig.y);
-      //      noStroke();
-    }
-    if (dad) {
-      PVector pass = new PVector(wind.x-junction.vel.x, 0);
-      junction.applyForce(pass);
-      junction.applyForce(junction.tension(parent.junction.pos.x+orig.x, parent.junction.pos.y+orig.y, 2*d, sc));
-      junction.tension(parent.junction.pos.x+orig.x, parent.junction.pos.y+orig.y, 2*d, sc);
-      //      parent.junction.applyForce(junction.tension(parent.junction.pos.x+orig.x, parent.junction.pos.y+orig.y, 2*d, sc));
-      junction.tetherUpdate(parent.junction, d);
-    } 
-    if (recurse) {
-      for (int i = 0; i<children.length; i++) {
-        children[i].sway();
-      }
-    }
-  }
-
-  void firefly(int weigh) {
-    //println("my scale is " + sc);
-    junction.weight = weigh;
-    junction.vel.x = 2;
-    junction.vel.y = random(-2, 2);
-    if (recurse) {
-      for (int i = 0; i<children.length; i++) {
-        children[i].firefly(weigh);
-      }
-    }
-  }
-
-  void fireFlyRun() {
-    if (sc>0) {
-      fill(color(255, 255, 0));
-      junction.edgeCollide();
-      if (dad) {
-        junction.tetherUpdate(parent.junction, 20);
-      } else {
-        junction.update();
-        if (junction.vel.mag()<1) {
-          junction.vel.x += random(-2, 2);
-          junction.vel.y += random(-2, 2);
-        }
-      }
-      junction.show();
-      if (recurse) {
-        for (int i = 0; i<children.length; i++) {
-          children[i].fireFlyRun();
-        }
-      }
-      fill(color(0, 255, 0));
-    }
-  }
-
-
-  void grassShow () {
-    fill(150, 240, 210, 170);
-    //      ellipse(junction.pos.x, junction.pos.y, sc, sc);
-    if (dad) {
-      fill(150, 240, 210, 170);//
-      beginShape();
-      vertex(parent.junction.pos.x-sc/3, height);//bottom left hand corner of the triangle
-      bezierVertex(parent.junction.pos.x-(sc/3)+orig.x/3, height-d/3, junction.pos.x, height-2*d/3, junction.pos.x, junction.pos.y);
-      bezierVertex(junction.pos.x, height-2*d/3, parent.junction.pos.x+(sc/3)+orig.x/3, height-d/3, parent.junction.pos.x+(sc/3), height);//bottom right hand corner of the triangle
-      endShape(CLOSE);
-    }
-    if (recurse) {
-      for (int i = 0; i<children.length; i++) {
-        children[i].grassShow();
-      }
-    }
-  }
-}
-
-*/
