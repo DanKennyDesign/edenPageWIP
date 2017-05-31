@@ -183,10 +183,40 @@ function blow(){
 		};
 	};
 
-	this.update = function () {  //manages acceleration, speed, position for untethered objects
-		this.vel.add(this.accel);
-		this.accel.set(0,0);
-		this.pos.add(this.vel);
+	update = function (mover) {  //manages acceleration, speed, position for untethered objects
+		if(!mover.tethered){
+			mover.vel.add(mover.accel);
+			mover.accel.set(0,0);
+			mover.pos.add(mover.vel);
+		}else{ //if not untethered, do the tetherupdate
+			//first, standard physics update
+			mover.accel.sub(mover.tether.vel);//this is necessary to avoid doubling the effect of the tether - without it, the tether 'goes out in front'
+			mover.vel.add(mover.accel);
+			mover.accel.set(0,0);
+			//then convert everything to angular velocity
+			var angVel = (mover.vel.x*-sin(mover.angle)+mover.vel.y*cos(mover.angle))/mover.radius;
+			mover.angle += angVel;
+		
+			//the x component of the velocity should be multiplied by -sin(angle) but I DON'T KNOW WHY YET
+			//store (negative) old position in pass to calculate momentum
+			var pass =  createVector(-mover.pos.x, -mover.pos.y);
+		
+			mover.pos.set(mover.tether.pos.x+cos(mover.angle)*mover.radius, mover.tether.pos.y+sin(mover.angle)*mover.radius);
+
+			//change pass to an expression of current momentum by adding current position
+
+			pass.add(mover.pos);
+
+			var swing = p5.Vector.sub(mover.vel,pass); //swing expresses the difference between tethered velocity, and velocity if the Mover were untethered
+			//swing.mult(mover.weight);
+			mover.tether.applyForce(swing);
+
+			//last, update the velocity to reflect the direction you're actually going
+			angVel *= mover.radius;
+			//mover.vel.set(pass);
+			mover.vel.set(angVel*-sin(mover.angle), angVel*cos(mover.angle));
+			mover.vel.add(mover.tether.vel);
+		};
 	};
 
 	this.edgeUpdate = function(){ //this function is intended to avoid movers getting 'stuck outside' - they should stop on the side of the canvas
@@ -461,6 +491,10 @@ function Mover (x, y, vx, vy, w, sc) {
 	};
 };
 
+function Tree(x, y, n, theta, w, sc){
+	
+};
+
 function Node (x, y, n, theta, w, sc) {
 	/*
 	x = starting x coordinate
@@ -522,7 +556,16 @@ function Node (x, y, n, theta, w, sc) {
 		print("speed differential is " + (this.junction.vel.x - this.children[0].junction.vel.x));
 	}
 
+
 	this.update = function(){
+		/*
+		update(this.junction);
+		this.children.map(  (c) => c.update());
+
+		*/
+
+
+
 		if (this.recurse){
 			this.junction.tetherUpdate2();
 		}
@@ -534,6 +577,8 @@ function Node (x, y, n, theta, w, sc) {
 		// for(var i = 0; i < this.children.length; i++){
 		// 	this.children[i].update();	
 		// } ;
+		
+		
 	};
 
 
