@@ -169,13 +169,17 @@ function blow(){
 	};
 
 	edgeCollide = function (mover) { //bounces off the edges of the canvas
-		if ((mover.pos.x<=0 && mover.vel.x<0)||(mover.pos.x>=width && mover.vel.x>0)) {
-			this.vel.x=this.vel.x*-1;
-		};
-
-		if ((this.pos.y<=0 && this.vel.y<0)||(this.pos.y>=height && this.vel.y>0)) {
-			this.vel.y=this.vel.y*-1;
-
+		if (mover.tethered == false){
+			if ((mover.pos.x<=0 && mover.vel.x<0)||(mover.pos.x>=width && mover.vel.x>0)) {
+				mover.vel.x=mover.vel.x*-1;
+			};
+	
+			if ((mover.pos.y<=0 && mover.vel.y<0)||(mover.pos.y>=height && mover.vel.y>0)) {
+				mover.vel.y=mover.vel.y*-1;
+	
+			};
+		}else{
+				//THIS SHOULD CONTAIN THE TETHEREDGECOLLIDE
 		};
 	};
 
@@ -294,8 +298,8 @@ function blow(){
 		fill(color(255, 150));
 		ellipse(this.pos.x, this.pos.y, 4, 4);
 		ellipse(this.pos.x, this.pos.y, 1, 1);
-		noStroke();  	
-	};
+		noStroke();
+	};  	
 
 
 //physics object class
