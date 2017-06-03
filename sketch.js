@@ -25,11 +25,12 @@ var right = true;
 
 var angle;
 var windStrength = 1; //change this to globally alter wind strength (imagine this is 'air density')
+var gravStrength = 1; //multiplies the effect of gravity
 var tension = 10; //change this to globally alter angular tension (i.e. tree branches 'swinging back')
 
 var testFireflies;
 var testTree;
-var gravity;
+//var gravity;
 
 
 
@@ -40,7 +41,7 @@ function setup() {
 	background(0);
 
 	wind = createVector (0,0);
-	gravity = createVector(0,1);
+	//gravity = createVector(0,1);
 
 
 	//testFireflies = new Node(width/2, 3*height/4, 2, 3, PI, 50, 50);
@@ -78,25 +79,25 @@ function draw () {
 
 	testTree.update();
 	testTree.applyWind();
-	testTree.applyForce(gravity);
+	//testTree.applyForce(gravity);
 	testTree.angular();
 	testTree.tree();
 
 	tree2.update();
 	tree2.applyWind();
-	tree2.applyForce(gravity);
+	//tree2.applyForce(gravity);
 	tree2.angular();
 	tree2.tree();
 
 	tree3.update();
 	tree3.applyWind();
-	tree3.applyForce(gravity);
+	//tree3.applyForce(gravity);
 	tree3.angular();
 	tree3.tree();
 
 	tree4.update();
 	tree4.applyWind();
-	tree4.applyForce(gravity);
+	//tree4.applyForce(gravity);
 	tree4.angular();
 	tree4.tree();
 
@@ -184,12 +185,9 @@ function blow(){
 	};
 
 	update = function (mover) {  //manages acceleration, speed, position for untethered objects
-		if(!mover.tethered){
-			mover.vel.add(mover.accel);
-			mover.accel.set(0,0);
-			mover.pos.add(mover.vel);
-		}else{ //if not untethered, do the tetherupdate
+		if(mover.tethered){//if not untethered, do the tetherupdate
 			//first, standard physics update
+			print("Smashing out a cold one with the boys");
 			mover.accel.sub(mover.tether.vel);//this is necessary to avoid doubling the effect of the tether - without it, the tether 'goes out in front'
 			mover.vel.add(mover.accel);
 			mover.accel.set(0,0);
@@ -216,124 +214,24 @@ function blow(){
 			//mover.vel.set(pass);
 			mover.vel.set(angVel*-sin(mover.angle), angVel*cos(mover.angle));
 			mover.vel.add(mover.tether.vel);
+		}else{
+			mover.vel.add(mover.accel);
+			mover.accel.set(0,0);
+			mover.pos.add(mover.vel);
 		};
 	};
 
-	this.edgeUpdate = function(){ //this function is intended to avoid movers getting 'stuck outside' - they should stop on the side of the canvas
-		this.vel.add(this.accel);
-		this.accel.set(0,0);
-		if ((this.pos.x<=0 && this.vel.x<0)||(this.pos.x>=width && this.vel.x>0)) {
-			this.vel.x=this.vel.x*-1;
-		};
-
-		if ((this.pos.y<=0 && this.vel.y<0)||(this.pos.y>=height && this.vel.y>0)) {
-			this.vel.y=this.vel.y*-1;
-
-		};
-		this.pos.add(this.vel);
-	};
-
-	this.applyWind = function () {  //this is a globally available function to apply the wind speed to the mover in a more realistic way, as though it were air.
-		var effectOfWind = p5.Vector.sub(wind,this.vel);
-		effectOfWind.mult(windStrength);
-		effectOfWind.mult(effectOfWind.mag());
-		this.applyForce(effectOfWind);
-	};
-	
-
-	//------TETHERING FUNCTIONS-----------
-
-	this.tetherUpdate2 = function(){
-		//first, standard physics update
-		this.accel.sub(this.tether.vel);
-		this.vel.add(this.accel);
-		this.accel.set(0,0);
-		//then convert everything to angular velocity
-		var angVel = (this.vel.x*-sin(this.angle)+this.vel.y*cos(this.angle))/this.radius;
-		this.angle += angVel;
-		
-		//the x component of the velocity should be multiplied by -sin(angle) but I DON'T KNOW WHY YET
-		//store (negative) old position in pass to calculate momentum
-		var pass =  createVector(-this.pos.x, -this.pos.y);
-		
-		this.pos.set(this.tether.pos.x+cos(this.angle)*this.radius, this.tether.pos.y+sin(this.angle)*this.radius);
-
-		//change pass to an expression of current momentum by adding current position
-
-		pass.add(this.pos);
-
-		var swing = p5.Vector.sub(this.vel,pass); //swing expresses the difference between tethered velocity, and velocity if the Mover were untethered
-		//swing.mult(this.weight);
-		this.tether.applyForce(swing);
-
-		//last, update the velocity to reflect the direction you're actually going
-		angVel *= this.radius;
-		//this.vel.set(pass);
-		this.vel.set(angVel*-sin(this.angle), angVel*cos(this.angle));
-		this.vel.add(this.tether.vel);
-	};
-
-	this.tetherTo = function(t) { //this function tethers an untethered mover to a new tether (t must be a mover)
-		if(this.tethered == false){
-			this.tether = t; //t must be a mover!
-			this.radius = this.pos.dist(t.pos);
-			this.origAng = atan2(this.pos.y-t.pos.y, this.pos.x-t.pos.x);
-			this.angle = atan2(this.pos.y-t.pos.y, this.pos.x-t.pos.x);
-		};
-	};
-
-	this.untether = function(){}; //WIP
-
-	this.angular = function (){ //enacts angular tension on the mover (eg for tree branches)
-		var toward = createVector(this.tether.pos.x+cos(this.origAng)*this.radius, this.tether.pos.y+sin(this.origAng)*this.radius);
-		var f = p5.Vector.sub(toward, this.pos);
-		
-		//draws a line to the point towards which this function is returning the mover 
-
-		/*stroke(255,225,50);
-		line(this.pos.x, this.pos.y, toward.x, toward.y);
-		noStroke(); 
-		*/
-		
-		f.mult(f.mag()*tension);
-		f.div(this.radius);
-		this.applyForce(f);
-	};
-
-	//----------KEYBOARD CONTROL------------
-
-	this.control = function () { //puts the mover under control of the keyboard
-		if(keyIsDown(LEFT_ARROW)){
-			this.vel.x -= .8;
-		};
-		if(keyIsDown(RIGHT_ARROW)){
-			this.vel.x += .8;
-		};
-		if(keyIsDown(UP_ARROW)){
-			this.vel.y -= .8;
-		};
-		if(keyIsDown(DOWN_ARROW)){
-			this.vel.y += .8;
-		};
-	};
 
 	
 
-	//---------DISPLAY------------
 
 
-	this.show = function () { //displays physics object as a firefly
-		stroke(color(255, 220, 50));
-		strokeWeight(1);
-		fill(color(255, 150));
-		ellipse(this.pos.x, this.pos.y, 4, 4);
-		ellipse(this.pos.x, this.pos.y, 1, 1);
-		noStroke();
-	};  	
+
+
 
 
 //physics object class
-function Mover (x, y, vx, vy, w, sc) {
+function Mover (x, y, vx, vy, w, sc, t) {
 
 
 	//basic physics variables	
@@ -385,10 +283,12 @@ function Mover (x, y, vx, vy, w, sc) {
 
 	this.tetherTo = function(t) { //this function tethers an untethered mover to a new tether (t must be a mover)
 		if(this.tethered == false){
+			this.tethered = true;
 			this.tether = t; //t must be a mover!
 			this.radius = this.pos.dist(t.pos);
 			this.origAng = atan2(this.pos.y-t.pos.y, this.pos.x-t.pos.x);
 			this.angle = atan2(this.pos.y-t.pos.y, this.pos.x-t.pos.x);
+			t.tethers[t.tethers.length] = this;
 		};
 	};
 
@@ -478,6 +378,11 @@ function Mover (x, y, vx, vy, w, sc) {
 		this.applyForce(effectOfWind);
 	};
 
+	this.gravity = function () {
+		gravity = createVector (0,gravStrength*this.weight);
+		this.applyForce(gravity);
+	}
+
 	//---------DISPLAY------------
 
 
@@ -489,10 +394,6 @@ function Mover (x, y, vx, vy, w, sc) {
 		ellipse(this.pos.x, this.pos.y, 1, 1);
 		noStroke();  	
 	};
-};
-
-function Tree(x, y, n, theta, w, sc){
-	
 };
 
 function Node (x, y, n, theta, w, sc) {
@@ -552,19 +453,9 @@ function Node (x, y, n, theta, w, sc) {
 	};
 
 
-	this.compareSpeed = function(){
-		print("speed differential is " + (this.junction.vel.x - this.children[0].junction.vel.x));
-	}
 
 
 	this.update = function(){
-		/*
-		update(this.junction);
-		this.children.map(  (c) => c.update());
-
-		*/
-
-
 
 		if (this.recurse){
 			this.junction.tetherUpdate2();
@@ -576,8 +467,7 @@ function Node (x, y, n, theta, w, sc) {
 
 		// for(var i = 0; i < this.children.length; i++){
 		// 	this.children[i].update();	
-		// } ;
-		
+		// } ;		
 		
 	};
 
