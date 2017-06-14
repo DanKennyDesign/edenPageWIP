@@ -31,8 +31,8 @@ var wind;
 var up = true;
 var right = true;
 
-var angle;
-var windStrength = 1; //change this to globally alter wind strength (imagine this is 'air density')
+var heading = 0;
+var windStrength = 0.1; //change this to globally alter wind strength (imagine this is 'air density')
 var gravStrength = 0.1; //multiplies the effect of gravity
 var tension = 1; //change this to globally alter angular tension (i.e. tree branches 'swinging back')
 var grassDensity = 1;
@@ -48,23 +48,15 @@ var testTree;
 function setup() {
 	smooth();
 
-	createCanvas(1200, 600);
+	createCanvas(400, 400);
 	background(0);
 
 	wind = createVector (0,0);
 	//gravity = createVector(0,1);
 
-
-	testFireflies = new Node(width/2, height/2, 0, PI, 10, 25);
-	testTree = new Node(width/4, height, 0, PI, 10, random(60,120));
-	tree2 = new Node(width/2, height, 0, PI, 10, random(60,120));
-	tree3 = new Node(random(0,3*width/4), height, 0, PI, 10, random(60,120));
-	
-	tree4 = new Mover(width*3/4, height, 0, 0, 10, random(60,120));
-	tree4.buildTree();
-
-	bouncyBoy = new Mover(width/2,height/2,2,3.3,10, 40);
-	bouncyBoy2 = 	new Mover(width/2,height/2,-4,-2,10, 40); 
+	bouncyBoy = new Mover(width/2,height/4,2,0,100, 40);
+	bouncyBoy2 = 	new Mover(width/2,height/2,-2, 0,100, 40);
+	//bouncyBoy.tetherTo(bouncyBoy2); 
 
 	testGrass = new Node (3*width/4, height, 0, PI, 250, 12); 
 
@@ -79,29 +71,32 @@ function setup() {
 
 function draw () {
 	background(0,20);
+
+
+	stroke(255,255,255);
+	strokeWeight(0.5);
+	
+	for(i=50; i<width; i += 50){
+		line(i,0,i,height);
+		line(0,i,width,i);
+		for(x=50; x<height; x += 50){
+			text(i + ", " + x, i+5, x+5)
+		};
+
+	};
+
 	/*
-	testFireflies.update();
-	testFireflies.applyWind();
-	testFireflies.junction.applyForce(wind);
-	testFireflies.junction.edgeUpdate();
-	testFireflies.junction.control();
-	testFireflies.fireflies();
-	//testFireflies.compareSpeed();
-	*/
+	if(keyIsPressed){
+		if(bouncyBoy.tethered){
+			bouncyBoy.untether();
+		}else{
+			bouncyBoy.tetherTo(bouncyBoy2);
+		};
 
-	bouncyBoy.update();
-	bouncyBoy.show();
-	if(bouncyBoy.tethered == false){
-		bouncyBoy.edgeCollide();
-	};
+	};*/
 
-	bouncyBoy2.update();
-	bouncyBoy2.show();
-	if(bouncyBoy2.tethered == false){
-		bouncyBoy2.edgeCollide();
-	};
+	stroke(150,150,0);
 
-	stroke(255,0,0);
 	var dist = bouncyBoy2.pos.dist(bouncyBoy.pos);
 	var angleTo = atan2(bouncyBoy.pos.y-bouncyBoy2.pos.y, bouncyBoy.pos.x-bouncyBoy2.pos.x);
 
@@ -109,43 +104,22 @@ function draw () {
 	translate(bouncyBoy2.pos.x, bouncyBoy2.pos.y);
 	line(0,0, dist*cos(angleTo), dist*sin(angleTo));
 	pop();
-	noStroke();
 
-	testTree.update();
-	testTree.applyWind();
-	testTree.gravity();
-	testTree.angular();
-	testTree.tree();
+	//bouncyBoy2.update();
+	//bouncyBoy2.applyWind();
+	bouncyBoy2.show();
+	if(bouncyBoy2.tethered == false){
+		bouncyBoy2.edgeCollide();
+	};
 
-	tree2.update();
-	tree2.applyWind();
-	tree2.gravity();
-	tree2.angular();
-	tree2.tree();
+	bouncyBoy.update();
+	bouncyBoy.applyWind();
+	bouncyBoy.show();
+	if(bouncyBoy.tethered == false){
+		bouncyBoy.edgeCollide();
+	};
 
-	tree3.update();
-	tree3.applyWind();
-	tree3.gravity();
-	tree3.angular();
-	tree3.tree();
 
-//	tree4.gravity();
-//	tree4.applyWind();
-//	tree4.angular();
-	tree4.updateTree();
-	tree4.showTree();
-
-	testGrass.update();
-	testGrass.applyWind();
-	testGrass.angular();
-	testGrass.grass();
-
-	for(i=0; i<testGrasses.length; i++){
-		testGrasses[i].update();
-		testGrasses[i].applyWind();
-		testGrasses[i].angular();
-		testGrasses[i].grass();		
-	}
 
 	blow();
 
@@ -158,6 +132,11 @@ function mousePressed() {
 };
 
 function keyPressed (){
+
+	//heading += PI/60;
+	print("heading = " + heading);
+	
+
 	if(bouncyBoy.tethered == false){
 		bouncyBoy.tetherTo(bouncyBoy2);
 	}else{
@@ -222,6 +201,8 @@ function Mover (x, y, vx, vy, w, sc, t) {
 	this.radius; //the constant distance the mover maintains from its tether
 	this.angle; //current angle between tether and mover
 	this.origAng; //original angle between tether and mover - this is remembered to simulate rotational tension
+	this.angVel = 0;
+	this.rotAccel = 0;
 	this.tethers = new Array(); //contains the movers' tethers/children
 
 	this.tetherTo = function(t) { //this function tethers an untethered mover to a new tether (t must be a mover)
@@ -229,8 +210,9 @@ function Mover (x, y, vx, vy, w, sc, t) {
 			this.tethered = true;
 			this.tether = t; //t must be a mover!
 			this.radius = this.pos.dist(t.pos);
-			this.origAng = atan2(t.pos.y-this.pos.y,t.pos.x-this.pos.x);
+			this.origAng = atan2(this.pos.y-t.pos.y, this.pos.x-t.pos.x);
 			this.angle = this.origAng;
+			this.angVel = ((this.vel.x*-sin(this.angle)+this.vel.y*cos(this.angle))/this.radius);
 			t.tethers.push(this);
 		};
 	};
@@ -250,63 +232,27 @@ function Mover (x, y, vx, vy, w, sc, t) {
 
 	//------TETHERING FUNCTIONS-----------
 
-	this.tetherUpdate2 = function(){
-		//first, standard physics update
-		//this.accel.sub(this.tether.vel);
-		this.vel.add(this.accel);
-		this.accel.set(0,0);
-		//then convert everything to angular velocity
-		var angVel = (this.vel.x*-sin(this.angle)+this.vel.y*cos(this.angle))/this.radius;
-		this.angle += angVel;
-		
-		//the x component of the velocity should be multiplied by -sin(angle) but I DON'T KNOW WHY YET
-		//store (negative) old position in pass to calculate momentum
-		var pass =  createVector(-this.pos.x, -this.pos.y);
-		
-		this.pos.set(this.tether.pos.x+cos(this.angle)*this.radius, this.tether.pos.y+sin(this.angle)*this.radius);
 
-		//change pass to an expression of current momentum by adding current position
 
-		pass.add(this.pos);
-
-		var swing = p5.Vector.sub(this.vel,pass); //swing expresses the difference between tethered velocity, and velocity if the Mover were untethered
-		//swing.mult(this.weight);
-		this.tether.applyForce(swing);
-
-		//last, update the velocity to reflect the direction you're actually going
-		angVel *= this.radius;
-		//this.vel.set(pass);
-		this.vel.set(angVel*-sin(this.angle), angVel*cos(this.angle));
-		this.vel.add(this.tether.vel);
+	this.update = function(){
+		if(this.tethered){
+			this.angVel += this.rotAccel;
+			this.rotAccel = 0;
+			this.accel.set(0,0);
+			this.angle += this.angVel;
+			var pass =  createVector(-this.pos.x, -this.pos.y);
+			this.pos.set(this.tether.pos.x+cos(this.angle)*this.radius, this.tether.pos.y+sin(this.angle)*this.radius);
+			pass.add(this.pos);
+			this.vel.set(pass);
+			
+		}else{
+			this.vel.add(this.accel);
+			this.accel.set(0,0);
+			this.pos.add(this.vel);
+		};
 	};
 
-
-	this.tetherUpdate = function(){
-		//first, standard physics update
-		this.accel.sub(this.tether.vel); //avoids doubling motion of tether
-
-		var swing = createVector(this.accel.x*abs(cos(this.angle)), this.accel.y*abs(sin(this.angle)));
-		swing.mult(this.weight);
-		this.tether.applyForce(swing);
-
-		this.angVel += ((this.accel.x*-sin(this.angle)+this.accel.y*cos(this.angle))/this.radius);
-		this.accel.set(0,0);
-		this.angle += this.angVel;
-
-		//store (negative) old position in pass to calculate momentum
-		var pass =  createVector(-this.pos.x, -this.pos.y);
-		
-		this.pos.set(this.tether.pos.x+cos(this.angle)*this.radius, this.tether.pos.y+sin(this.angle)*this.radius);
-
-		//change pass to an expression of current momentum by adding current position
-
-		pass.add(this.pos); //this is like subtracting the old position to calculate momentum
-
-		//last, update the velocity to reflect the direction you're actually going
-		//this.vel.set(pass);
-		this.vel.set(pass);
-		//this.vel.add(this.tether.vel);
-	};
+	
 
 
 	this.angular = function (){ //enacts angular tension on the mover (eg for tree branches)
@@ -347,15 +293,23 @@ function Mover (x, y, vx, vy, w, sc, t) {
 	//-------SHARED PHYSICS--------
 
 	this.applyForce = function (force) {
-		var f = p5.Vector.div(force,this.weight);
-		this.accel.add(f);
+		if(this.tethered){
+			print(force.x);
+			var rotF = force.x*-sin(this.angle)+force.y*cos(this.angle);
+			this.rotAccel += rotF/(this.weight*this.radius);
+			var tetherF = createVector(force.x*cos(this.angle), force.y*sin(this.angle));
+			this.tether.applyForce(tetherF);
+		}else{
+			var f = p5.Vector.div(force,this.weight);
+			this.accel.add(f);
+		};
 		/*
 		//line for troubleshooting velocity	
 		stroke(255,225,50);
 		line(this.pos.x, this.pos.y, this.pos.x+(10*this.vel.x), this.pos.y+(10*this.vel.y));
 		noStroke(); 
 		*/
-	};
+	};	
 
 	this.edgeCollide = function () { //bounces off the edges of the canvas
 		if ((this.pos.x<=0 && this.vel.x<0)||(this.pos.x>=width && this.vel.x>0)) {
@@ -365,16 +319,6 @@ function Mover (x, y, vx, vy, w, sc, t) {
 		if ((this.pos.y<=0 && this.vel.y<0)||(this.pos.y>=height && this.vel.y>0)) {
 			this.vel.y=this.vel.y*-1;
 
-		};
-	};
-
-	this.update = function () {  //manages acceleration, speed, position for untethered objects
-		if (this.tethered == false){
-			this.vel.add(this.accel);
-			this.accel.set(0,0);
-			this.pos.add(this.vel);
-		}else{
-			this.tetherUpdate();
 		};
 	};
 
@@ -391,6 +335,7 @@ function Mover (x, y, vx, vy, w, sc, t) {
 		};
 		this.pos.add(this.vel);
 	};
+
 
 	this.applyWind = function () {  //this is a globally available function to apply the wind speed to the mover in a more realistic way, as though it were air.
 		var effectOfWind = p5.Vector.sub(wind,this.vel);
