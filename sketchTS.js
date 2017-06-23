@@ -23,11 +23,11 @@ var wind;
 var up = true;
 var right = true;
 
-var windStrength = 0.05; //change this to globally alter wind strength (imagine this is 'air density')
+var windStrength = 0.1; //change this to globally alter wind strength (imagine this is 'air density')
 var gravStrength = 0.1; //multiplies the effect of gravity
 var tension = 0.005; //change this to globally alter angular tension (i.e. tree branches 'swinging back')
 var grassDensity = 1;
-var treeLimit = 10;
+var treeLimit = 30;
 
 var testTree;
 //var gravity;
@@ -62,29 +62,17 @@ function draw () {
 	background(0,20);
 	blow();
 
-
-	
-	bouncyBoy2.update();
-	bouncyBoy2.applyWind();
-	bouncyBoy2.show();
-	if(bouncyBoy2.tethered == false){
-		bouncyBoy2.edgeCollide();
-	};
-
-	bouncyBoy.update();
-	bouncyBoy.applyWind();
-	bouncyBoy.show();
-	if(bouncyBoy.tethered == false){
-		bouncyBoy.edgeCollide();
-	};
-
 	//testTree.gravity();
 	//testTree.angular();
 	//testTree.applyWind();
 	//testTree.updateTree();
 	testTree.showTree();
 
+	testTree2.update();
+	testTree2.branches[0.].control();
 	testTree2.show();
+
+	print(sin(testTree2.branches[0].angle));
 
 
 
@@ -156,10 +144,10 @@ function Tree(x,scale,theta){ //for root, use syntax "Tree([x position], [starti
 		x.branches.push(this);
 		this.origAngle = theta;
 		this.angle = theta;
-		this.pos = createVector(x.pos.x+sin(theta)*scale,x.pos.y+cos(theta)*scale);
+		this.pos = createVector(x.pos.x+cos(theta)*scale,x.pos.y+sin(theta)*scale);
 	}else{
 		this.pos = createVector(x, height);
-		this.angle = -PI;
+		this.angle = -PI/2;
 		this.parent = null;
 		this.tethered = false;
 	};
@@ -177,16 +165,16 @@ function Tree(x,scale,theta){ //for root, use syntax "Tree([x position], [starti
 	};
 
 	if(this.scale>treeLimit){ //if the scale is large enough, recurse!
-			var newAng = 0;
-				if(this.maxChildren == 1){
-					newAng = this.angle+random(-PI/30, PI/30)+random(-PI/30, PI/30);
-					var child = new Tree(this, this.scale*(random(0.6,0.85)), newAng);
-				}else{
-					newAng = this.angle-PI/8+random(-PI/15, PI/15)+random(-PI/15, PI/15);
-					var child1 = new Tree(this, this.scale*(random(0.6,0.85)), newAng);
-					newAng = this.angle+PI/8+random(-PI/15, PI/15)+random(-PI/15, PI/15);
-					var child2 = new Tree(this, this.scale*(random(0.6,0.85)), newAng);
-				};
+		var newAng = 0;
+			if(this.maxChildren == 1){
+				newAng = this.angle+random(-PI/30, PI/30)+random(-PI/30, PI/30);
+				var child = new Tree(this, this.scale*(random(0.6,0.85)), newAng);
+			}else{
+				newAng = this.angle-PI/8+random(-PI/15, PI/15)+random(-PI/15, PI/15);
+				var child1 = new Tree(this, this.scale*(random(0.6,0.85)), newAng);
+				newAng = this.angle+PI/8+random(-PI/15, PI/15)+random(-PI/15, PI/15);
+				var child2 = new Tree(this, this.scale*(random(0.6,0.85)), newAng);
+			};
 	};
 
 	this.show = function(){
@@ -195,11 +183,10 @@ function Tree(x,scale,theta){ //for root, use syntax "Tree([x position], [starti
 
 		for(var i = this.branches.length-1; i > -1; i--){
 			line(this.pos.x, this.pos.y, this.branches[i].pos.x, this.branches[i].pos.y);
-			//this.branches[i].show();
 		};
 
 		textSize(9);
-		text((this.maxChildren), this.pos.x, this.pos.y);	
+		//text((this.maxChildren), this.pos.x, this.pos.y);	
 		noStroke();
 
 
@@ -207,6 +194,30 @@ function Tree(x,scale,theta){ //for root, use syntax "Tree([x position], [starti
 
 	};
 
+	this.update = function (){
+		if(this.tethered){
+			var toAdd = (wind.x*-sin(this.angle)+wind.y*cos(this.angle))/this.scale;
+			this.rotAccel += (wind.x*sin(this.angle)+wind.y*cos(this.angle))/this.scale/this.scale;
+			//this.parent.rotAccel += wind.x*abs(cos(this.angle));
+			this.rotVel += toAdd;
+			this.angle += this.rotVel;
+			this.pos.set(this.parent.pos.x+cos(this.angle)*this.scale,this.parent.pos.y+sin(this.angle)*scale);
+		};
+
+		this.branches.map( (b) => b.update());
+	};
+
+	this.control = function (){
+		if(keyIsDown(LEFT_ARROW)){
+			this.angle -= 10/this.scale;
+		};
+		if(keyIsDown(RIGHT_ARROW)){
+			this.angle += 10/this.scale;
+		};
+
+		this.branches.map(  (b) => b.control());
+
+	};
 };
 
 
