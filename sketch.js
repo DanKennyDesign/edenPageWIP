@@ -448,7 +448,7 @@ function Mover (x, y, vx, vy, w, sc, t) {
 			//establish number of children
 			var maxChildren;
 
-			if(/*this.tethered && */random(0,100)<85){
+			if(this.tethered && random(0,100)<85){
 				maxChildren = 2;
 			}else{
 				maxChildren = 1;	
