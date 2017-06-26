@@ -25,7 +25,7 @@ var right = true;
 
 var windStrength = 4.5; //change this to globally alter wind strength (imagine this is 'air density')
 var gravStrength = 1; //multiplies the effect of gravity
-var tension = 0.1; //change this to globally alter angular tension (i.e. tree branches 'swinging back')
+var tension = 0.001; //change this to globally alter angular tension (i.e. tree branches 'swinging back')
 var grassDensity = 1;
 var treeLimit = 10;
 var windLimit = 2;
@@ -64,12 +64,11 @@ function draw () {
 	testTree.update();
 	testTree.show();
 
-	testTree2.wind();
-	testTree2.angular();
-	testTree2.update();
-	testTree2.show();
+	//testTree2.wind();
+	//testTree2.angular();
+	//testTree2.popUpdate();
+	testTree2.popShow();
 
-	print(variab);
 	textSize(20);
 	if(variab == 0){
 		fill(250,0,0);
@@ -190,6 +189,8 @@ function Tree(x,scale,theta){ //for root, use syntax "Tree([x position], [starti
 		this.parent = x;
 		x.branches.push(this);
 		this.origAngle = theta;
+		this.origAng = theta-x.angle;
+		this.ang = theta-x.angle;
 		this.angle = theta;
 		this.pos = createVector(x.pos.x+cos(theta)*scale,x.pos.y+sin(theta)*scale);
 	}else{
@@ -204,8 +205,7 @@ function Tree(x,scale,theta){ //for root, use syntax "Tree([x position], [starti
 	this.branches = new Array();
 	
 	//determine the number of branches	
-	if(this.tethered && random(0,100)<83){
-				print("ping");	
+	if(this.tethered && random(0,100)<83){	
 				this.maxChildren = 2;
 			}else{
 				this.maxChildren = 1;	
@@ -244,11 +244,35 @@ function Tree(x,scale,theta){ //for root, use syntax "Tree([x position], [starti
 
 	};
 
+	this.popShow = function(){
+		push();
+		if(!this.tethered){
+			translate(this.pos.x, this.pos.y);
+			rotate(PI);
+		};
+		
+		stroke(255, 50);
+		strokeWeight(this.scale/20);
+
+		for(var i = this.branches.length-1; i > -1; i--){
+			push();
+			rotate(this.branches[i].ang);
+			line(0,0,0, this.branches[i].scale);
+			translate(0,this.branches[i].scale);
+			this.branches[i].popShow();
+			pop();
+		};
+
+		noStroke();
+
+		pop();
+	};
+
 	this.applyForce = function (force){
 		if(force instanceof p5.Vector){
 			 if(this.tethered){
 				var rotF = force.x*-sin(this.angle)+force.y*cos(this.angle);
-				this.rotAccel += rotF/(this.scale*this.scale);
+				this.rotAccel += rotF/(this.scale*this.scale*this.scale);
 				var tetherF = createVector(force.x*abs(cos(this.angle)), force.y*abs(sin(this.angle)));
 				this.parent.applyForce(tetherF);
 			};
@@ -265,23 +289,46 @@ function Tree(x,scale,theta){ //for root, use syntax "Tree([x position], [starti
 
 	this.angular = function (){
 		if(this.tethered){
-			var mag = this.origAngle - this.angle;
+			var mag = this.origAng - this.ang;
 			//print(mag);
-			var proportion = abs(mag/PI/4);
-			this.rotVel += mag*tension*proportion*this.scale;
+			var proportion = abs(4*mag/PI);
+			this.rotVel += mag*tension*this.scale;//*proportion
 		};
 
 		this.branches.map( (b) => b.angular());
 
 	};
 
+	this.popUpdate = function() {
+		if(this.tethered){
+			var windEffect = ((wind.x/*-this.vel.x*/)*-sin(this.angle)+(wind.y/*-this.vel.y*/)*cos(this.angle))/this.scale/this.scale;
+			var mag = (this.origAng-this.ang);
+			var prop = abs(4*mag/PI);
+			var tenseEffect = mag*tension*prop;
+			this.parent.ang += 0;//windEffect*tension*prop/this.parent.scale;??
+			print(degrees(windEffect+tenseEffect));
+			this.ang += windEffect+tenseEffect;
+
+			//this.angle = this.parent.angle + this.ang;
+			//this.pos.set(this.parent.pos.x+cos(this.angle)*this.scale,this.parent.pos.y+sin(this.angle)*scale);
+			//this.vel.set(this.rotVel*this.scale*-sin(this.angle), this.rotVel*this.scale*cos(this.angle));
+			//this.vel.add(this.parent.vel);
+		};
+
+		this.branches.map( (b) => b.popUpdate());
+
+		
+	};
+
 
 	this.update = function (){
 		//tetherupdate
 		if(this.tethered){
+			this.rotVel *= 0.9; //this damper stops the tree tearing itself apart - if there's no 'friction' in the rotational momentum of the branch, forces multiply catastrophically.
 			this.rotVel += this.rotAccel;
 			this.rotAccel =0;
 			this.angle += this.rotVel;
+			this.ang = this.angle-this.parent.angle;
 			this.pos.set(this.parent.pos.x+cos(this.angle)*this.scale,this.parent.pos.y+sin(this.angle)*scale);
 			this.vel.set(this.rotVel*this.scale*-sin(this.angle), this.rotVel*this.scale*cos(this.angle));
 			this.vel.add(this.parent.vel);
