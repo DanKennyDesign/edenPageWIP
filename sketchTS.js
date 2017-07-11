@@ -34,8 +34,7 @@ var variab = 0;
 var testTree;
 //var gravity;
 
-
-
+leaves = new Array();
 
 function setup() {
 	smooth();
@@ -50,6 +49,14 @@ function setup() {
 	testTree = new Tree (width/4, random(60,150));
 	testTree2 = new Tree(3*width/4, 130);
 
+	testLeaf = new Leaf (width/2, height/2, 40, PI);
+
+
+
+	for(i=0; i<30; i++){
+		leafy = new Leaf (width/2, height/2, 40, i*(PI/15));
+		leaves.push(leafy);
+	};
 	
 };
 
@@ -64,10 +71,14 @@ function draw () {
 	testTree.update();
 	testTree.show();
 
-	//testTree2.wind();
-	//testTree2.angular();
-	//testTree2.popUpdate();
-	testTree2.popShow();
+	testTree2.wind();
+	testTree2.angular();
+	testTree2.update();
+	testTree2.show();
+
+	testLeaf.show();
+
+	leaves.map( (l) => l.show());
 
 	textSize(20);
 	if(variab == 0){
@@ -244,6 +255,9 @@ function Tree(x,scale,theta){ //for root, use syntax "Tree([x position], [starti
 
 	};
 
+
+
+	//redundant - this function drew the tree using relative angles to try and relieve processor load
 	this.popShow = function(){
 		push();
 		if(!this.tethered){
@@ -299,6 +313,7 @@ function Tree(x,scale,theta){ //for root, use syntax "Tree([x position], [starti
 
 	};
 
+	//redundant
 	this.popUpdate = function() {
 		if(this.tethered){
 			var windEffect = ((wind.x/*-this.vel.x*/)*-sin(this.angle)+(wind.y/*-this.vel.y*/)*cos(this.angle))/this.scale/this.scale;
@@ -346,6 +361,53 @@ function Tree(x,scale,theta){ //for root, use syntax "Tree([x position], [starti
 		};
 
 		this.branches.map(  (b) => b.control());
+
+	};
+};
+
+function Leaf (x,y,scale,theta) {
+
+	this.scale = scale;
+	this.origAngle = theta;
+	this.angle = theta;
+	this.rotAccel = 0;
+	this.rotVel = 0;
+	this.pos = createVector(x,y);
+	this.fill1 = random(200,255);
+	this.fill2 = random(150,255);
+	this.fill3 = random(0,150);
+	print(this.fill1 + ", " + this.fill2 + ", " + this.fill3);
+
+	this.show = function () {
+		push();
+		stroke(255, 50);
+		strokeWeight(this.scale/20);
+		translate(this.pos.x, this.pos.y);
+		rotate(this.angle);
+		line(0,0,0, this.scale);
+		translate(0,this.scale);
+		noStroke();
+		//stroke(120,120,0,50);
+		//strokeJoin(ROUND);
+		//strokeWeight(this.scale/4);
+		fill(this.fill1,this.fill2,this.fill3,80);
+		this.leafShape(this.scale);
+		//rotate(PI/4);
+		//this.leafShape(.75*this.scale);
+		//rotate(-PI/2);
+		//this.leafShape(.75*this.scale);
+		pop();
+	};
+
+	this.leafShape = function (scale) {
+		beginShape();
+		vertex(0,0);
+		quadraticVertex(scale, scale/3, 0, scale*3/2);
+		quadraticVertex(-scale, scale/3, 0, 0);
+		endShape(CLOSE);
+	};
+
+	this.update = function () {
 
 	};
 };
