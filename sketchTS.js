@@ -1,19 +1,8 @@
 /*
 TO DO
 
-[1.] Ensure Node constructor is in fact building multiple children
-[2.] alter tetherUpdate2 so it exerts force on the tether (based on difference between velocity before and after conversion to angular velocity)
-[2. a.] figure out what the deal is with the relative forces of oscillation and wind
-[2. b.] run wind on a unversally accessible multiplier
-3. Build tree display function
-	 [a.] more realistic Node constructor
-	 b. leaves (NOT YET)
-4. Move functions outside mover/junction class? Have a class for Tree, Grass, and Mover? So Tree is just a stack of tethered movers?
-5. Build grass display function
-[6.] change gravity to be dependent on a Movers weight
-7. Build bugs
-8. AESTHETICALLY - translucent shapes on black background - esp flowers
-**. For a perfect 'bouncing twig' convert the edge collide transfer so that it affects velocity NOT acceleration
+[1.] Leaf display section
+2. FUNCTION FOR MEASURING ANGLE BETWEEN ANGLES
 
 */
 
@@ -35,10 +24,13 @@ var testTree;
 //var gravity;
 
 leaves = new Array();
+var leavesLim = 12;
+var leafTolerance = 45;
 
 function setup() {
 	smooth();
 
+	leafTolerance = radians(leafTolerance);
 
 	createCanvas(1200, 600);
 	background(0);
@@ -46,18 +38,21 @@ function setup() {
 	wind = createVector (0,0);
 	//gravity = createVector(0,1);
 
+	
+
+
+
+
+	for(i=0; i<leavesLim; i++){
+		leafy = new Leaf (width/2, height/2, 15, i*(2*PI/leavesLim));
+		leaves.push(leafy);
+	};
+
 	testTree = new Tree (width/4, random(60,150));
 	testTree2 = new Tree(3*width/4, 130);
 
-	testLeaf = new Leaf (width/2, height/2, 40, PI);
+	print("leaves length " + leaves.length);
 
-
-
-	for(i=0; i<30; i++){
-		leafy = new Leaf (width/2, height/2, 40, i*(PI/15));
-		leaves.push(leafy);
-	};
-	
 };
 
 
@@ -76,9 +71,8 @@ function draw () {
 	testTree2.update();
 	testTree2.show();
 
-	testLeaf.show();
-
-	leaves.map( (l) => l.show());
+	//leaves.map( (l) => l.show());
+	leaves.map( (l) => l.update());
 
 	textSize(20);
 	if(variab == 0){
@@ -131,25 +125,7 @@ function mousePressed() {
 };
 
 function keyPressed (){
-	/*
-	if(keyIsDown(DOWN_ARROW)){	
-		if(variab ==0){
-			windStrength -= 0.001;
-		} else if(variab == 1){
-			tension -= 0.001;
-		} else if(variab == 2){
-			windLimit -= 0.001;
-		};
-	}else if(keyIsDown(UP_ARROW)){
-		if(variab ==0){
-			windStrength += 0.001;
-		} else if(variab == 1){
-			tension += 0.001;
-		} else if(variab == 2){
-			windLimit += 0.001;
-		};
-	};
-	*/
+
 
 };
 
@@ -189,6 +165,22 @@ function blow(){
 	//print(wind.x); //manages the wind
 };
 
+function angleBetween(a1, a2){
+	var out = abs(a1-a2)
+
+	if(out > 2*PI){
+		out -= 2*PI;
+	};
+
+	if (out > PI){
+		out = (2*PI)-out;
+	};
+
+	print("a1 " + degrees(a1) + " and branch angle " + degrees(a2) + " and out is " + degrees(out));
+
+	return out;
+
+};
 
 function Tree(x,scale,theta){ //for root, use syntax "Tree([x position], [starting scale])"
 
@@ -213,7 +205,8 @@ function Tree(x,scale,theta){ //for root, use syntax "Tree([x position], [starti
 
 	this.rotAccel = 0;
 	this.rotVel = 0;
-	this.branches = new Array();
+	this.branches = new Array ();
+	this.l = new Array ();
 	
 	//determine the number of branches	
 	if(this.tethered && random(0,100)<83){	
@@ -233,6 +226,11 @@ function Tree(x,scale,theta){ //for root, use syntax "Tree([x position], [starti
 				newAng = this.angle+PI/8+random(-PI/15, PI/15)+random(-PI/15, PI/15);
 				var child2 = new Tree(this, this.scale*(random(0.6,0.85)), newAng);
 			};
+	}else{
+		//print("below scale");
+		//print(leaves.length);
+		leaves.map(  (l) => l.attachLeaves(this));
+		
 	};
 
 
@@ -253,6 +251,13 @@ function Tree(x,scale,theta){ //for root, use syntax "Tree([x position], [starti
 
 		this.branches.map( (t) => t.show());
 
+		if(this.scale<treeLimit){
+			print(this.l.length);
+
+			for (var i = this.l.length - 1; i >= 0; i--) {
+				this.l[i].showAt(this.pos.x, this.pos.y);
+			};	
+		};
 	};
 
 
@@ -376,7 +381,7 @@ function Leaf (x,y,scale,theta) {
 	this.fill1 = random(200,255);
 	this.fill2 = random(150,255);
 	this.fill3 = random(0,150);
-	print(this.fill1 + ", " + this.fill2 + ", " + this.fill3);
+	//print(this.fill1 + ", " + this.fill2 + ", " + this.fill3);
 
 	this.show = function () {
 		push();
@@ -384,8 +389,8 @@ function Leaf (x,y,scale,theta) {
 		strokeWeight(this.scale/20);
 		translate(this.pos.x, this.pos.y);
 		rotate(this.angle);
-		line(0,0,0, this.scale);
-		translate(0,this.scale);
+		line(0,0,0, this.scale/2);
+		translate(0,this.scale/2);
 		noStroke();
 		//stroke(120,120,0,50);
 		//strokeJoin(ROUND);
@@ -399,6 +404,28 @@ function Leaf (x,y,scale,theta) {
 		pop();
 	};
 
+	this.showAt = function(xCoord, yCoord){
+		push();
+		stroke(255, 50);
+		strokeWeight(this.scale/20);
+		translate(xCoord, yCoord);
+		rotate(this.angle);
+		line(0,0,0, this.scale/2);
+		translate(0,this.scale/2);
+		noStroke();
+		//stroke(120,120,0,50);
+		//strokeJoin(ROUND);
+		//strokeWeight(this.scale/4);
+		fill(this.fill1,this.fill2,this.fill3,50);
+		this.leafShape(this.scale);
+		//rotate(PI/4);
+		//this.leafShape(.75*this.scale);
+		//rotate(-PI/2);
+		//this.leafShape(.75*this.scale);
+		pop();
+
+	}
+
 	this.leafShape = function (scale) {
 		beginShape();
 		vertex(0,0);
@@ -408,6 +435,23 @@ function Leaf (x,y,scale,theta) {
 	};
 
 	this.update = function () {
+		this.rotVel *= 0.9;
+		var effectOfWind = wind.x*-cos(this.angle);// + wind.y*-sin(this.angle);
+		this.rotVel += effectOfWind/this.scale/this.scale;
+		this.angle += this.rotVel;
+		var mag = this.origAngle - this.angle;
+		var proportion = abs(4*mag/PI);
+		this.rotVel += mag*tension*this.scale;
+		//print("angle: " + this.angle);
+	};
 
+	this.attachLeaves = function(t){
+		if(angleBetween(this.origAngle+(PI/2),t.origAngle)<leafTolerance){
+			t.l.push(this);
+			print("success");
+		};
+
+		
+		
 	};
 };
