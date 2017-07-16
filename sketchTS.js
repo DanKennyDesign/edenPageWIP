@@ -2,7 +2,13 @@
 TO DO
 
 [1.] Leaf display section
-2. FUNCTION FOR MEASURING ANGLE BETWEEN ANGLES
+[2.] FUNCTION FOR MEASURING ANGLE BETWEEN ANGLES
+[3.] leaves!! Done
+4. Grass
+5. Wind gusts
+6. get rid of 180/0 degree leaves
+7. make it so that leaf display is organised by stroke, save processor
+
 
 */
 
@@ -40,11 +46,11 @@ function setup() {
 
 	
 
-
+	testGrass = new Grass(width/2, 5, -PI/2);
 
 
 	for(i=0; i<leavesLim; i++){
-		leafy = new Leaf (width/2, height/2, 15, i*(2*PI/leavesLim));
+		leafy = new Leaf (width/2, height/2, 12, i*(2*PI/leavesLim));
 		leaves.push(leafy);
 	};
 
@@ -73,6 +79,9 @@ function draw () {
 
 	//leaves.map( (l) => l.show());
 	leaves.map( (l) => l.update());
+
+	testGrass.showCentre();
+	testGrass.angle += .1;
 
 	textSize(20);
 	if(variab == 0){
@@ -416,7 +425,7 @@ function Leaf (x,y,scale,theta) {
 		//stroke(120,120,0,50);
 		//strokeJoin(ROUND);
 		//strokeWeight(this.scale/4);
-		fill(this.fill1,this.fill2,this.fill3,50);
+		fill(this.fill1,this.fill2,this.fill3,100);
 		this.leafShape(this.scale);
 		//rotate(PI/4);
 		//this.leafShape(.75*this.scale);
@@ -454,4 +463,36 @@ function Leaf (x,y,scale,theta) {
 		
 		
 	};
+};
+
+function Grass (x, s, theta){
+	this.lat = x;
+	this.scale = s;
+	this.origAngle = theta;
+	this.angle = theta;
+	this.rotAccel = 0;
+	this.rotVel = 0;
+
+	this.grassShape = function (s) {
+		fill(180,250,180,150);
+		beginShape();
+		vertex(s,0);
+		quadraticVertex(s, -4*s, 14*s*cos(this.angle), 14*s*sin(this.angle));
+		quadraticVertex(-s, -4*s, -s, 0);
+		endShape(CLOSE);
+
+	};
+
+	this.showCentre = function () {
+		push();
+		translate(width/2, height/2);
+		//rotate(PI);
+		this.grassShape(this.scale);
+		pop();
+	};
+
+	this.show = function(){
+
+	};
+
 };
